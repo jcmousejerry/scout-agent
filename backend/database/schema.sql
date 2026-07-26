@@ -79,3 +79,65 @@ CREATE TABLE IF NOT EXISTS sessions (
     updated_at           TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,  -- 最后更新时间（每次 SSE 事件更新时自动刷新）
     FOREIGN KEY (user_id) REFERENCES users(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- -----------------------------------------------------------
+-- 5. 比赛模拟 - 球队表
+-- 由 Go 后端统一管理持久化（原 match_sim 模块使用 SQLite，已迁移至 MySQL）。
+-- 启动时由 Python match_sim 服务经 /api/match-data/seed 批量写入种子数据。
+-- -----------------------------------------------------------
+CREATE TABLE IF NOT EXISTS match_sim_teams (
+    id               INT AUTO_INCREMENT PRIMARY KEY,
+    name             VARCHAR(255) NOT NULL UNIQUE,   -- 球队全名，全局唯一
+    short_name       VARCHAR(64)  NOT NULL,          -- 简称（如 MCI/RMA）
+    league           VARCHAR(128) NOT NULL,          -- 所属联赛
+    country          VARCHAR(128) NOT NULL,          -- 国家
+    strength_rating  INT DEFAULT 80,                 -- 综合实力评分
+    default_formation VARCHAR(32) NOT NULL DEFAULT '4-3-3'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- -----------------------------------------------------------
+-- 6. 比赛模拟 - 球员表
+-- -----------------------------------------------------------
+CREATE TABLE IF NOT EXISTS match_sim_players (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    team_id     INT NOT NULL,                        -- 所属球队 ID，关联 match_sim_teams.id
+    name        VARCHAR(255) NOT NULL,
+    position    VARCHAR(16)  NOT NULL,               -- 位置（GK/DEF/MID/FWD 或具体）
+    shirt_number INT,
+    age         INT,
+    nationality VARCHAR(64),
+    rating      INT DEFAULT 75,                      -- 球员评分
+    stats_json  LONGTEXT NULL,                       -- 详细能力 JSON（不透明存储）
+    is_starter  TINYINT DEFAULT 1,                   -- 1=首发 0=替补
+    FOREIGN KEY (team_id) REFERENCES match_sim_teams(id),
+    UNIQUE KEY uk_team_player (team_id, name)        -- 同一球队内球员名唯一
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- -----------------------------------------------------------
+-- 7. 比赛模拟 - 比赛记录表
+-- 比赛运行过程中每个 tick（约 5 秒/比赛分钟）由 Python 经
+-- PUT /api/match-data/match/:session 更新一次状态。
+-- stats_json / events_json / tactics_json 为不透明 JSON 串，Go 不解析其内部结构。
+-- -----------------------------------------------------------
+CREATE TABLE IF NOT EXISTS match_sim_matches (
+    id              INT AUTO_INCREMENT PRIMARY KEY,
+    session_id      VARCHAR(64) NOT NULL UNIQUE,     -- 比赛会话标识（Python 生成）
+    home_team_id    INT NOT NULL,
+    away_team_id    INT NOT NULL,
+    home_team_name  VARCHAR(255) NOT NULL,
+    away_team_name  VARCHAR(255) NOT NULL,
+    home_score      INT DEFAULT 0,
+    away_score      INT DEFAULT 0,
+    match_status    VARCHAR(32) DEFAULT 'created',   -- created/first_half/half_time/second_half/finished
+    match_minute    INT DEFAULT 0,                   -- 当前比赛分钟数
+    home_formation  VARCHAR(32) DEFAULT '4-3-3',
+    away_formation  VARCHAR(32) DEFAULT '4-3-3',
+    stats_json      LONGTEXT NULL,                   -- 射门/控球/犯规等统计 JSON
+    events_json     LONGTEXT NULL,                   -- 全部比赛事件 JSON 数组
+    tactics_json    LONGTEXT NULL,                   -- 战术调整记录 JSON 数组
+    winner          VARCHAR(255) NULL,               -- 终场胜方（可空）
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    finished_at     TIMESTAMP NULL,                  -- 终场时间（match_status=finished 时写入）
+    FOREIGN KEY (home_team_id) REFERENCES match_sim_teams(id),
+    FOREIGN KEY (away_team_id) REFERENCES match_sim_teams(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

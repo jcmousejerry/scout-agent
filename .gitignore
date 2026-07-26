@@ -9,3 +9,5 @@ logs/
 *.exe
 *.db
 dist/
+temp/
+*.stackdump

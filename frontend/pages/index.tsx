@@ -258,6 +258,42 @@ export default function Home() {
         </div>
       </header>
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "24px" }}>
+        {/* 功能模块选择 */}
+        {step === "input" && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
+            <div
+              onClick={() => {}}
+              style={{
+                ...st.card, cursor: "pointer", padding: "24px", textAlign: "center",
+                border: "2.5px solid #2563eb", background: "#eff6ff",
+                transition: "all 0.2s",
+              }}
+              onMouseOver={e => { e.currentTarget.style.borderColor = "#1d4ed8"; e.currentTarget.style.background = "#dbeafe"; }}
+              onMouseOut={e => { e.currentTarget.style.borderColor = "#2563eb"; e.currentTarget.style.background = "#eff6ff"; }}
+            >
+              <div style={{ fontSize: 40, marginBottom: 8 }}>🔍</div>
+              <h3 style={{ margin: "0 0 4px", fontSize: 16, fontWeight: 700, color: "#1e40af" }}>智能球探球员推荐</h3>
+              <p style={{ margin: 0, fontSize: 13, color: "#64748b" }}>AI多专家辩论，推荐最佳球员人选</p>
+              <div style={{ marginTop: 12, fontSize: 12, color: "#2563eb", fontWeight: 600 }}>✓ 当前功能</div>
+            </div>
+            <div
+              onClick={() => router.push("/match-sim")}
+              style={{
+                ...st.card, cursor: "pointer", padding: "24px", textAlign: "center",
+                border: "2.5px solid #16a34a", background: "#f0fdf4",
+                transition: "all 0.2s",
+              }}
+              onMouseOver={e => { e.currentTarget.style.borderColor = "#15803d"; e.currentTarget.style.background = "#dcfce7"; }}
+              onMouseOut={e => { e.currentTarget.style.borderColor = "#16a34a"; e.currentTarget.style.background = "#f0fdf4"; }}
+            >
+              <div style={{ fontSize: 40, marginBottom: 8 }}>🏟️</div>
+              <h3 style={{ margin: "0 0 4px", fontSize: 16, fontWeight: 700, color: "#166534" }}>比赛策略战术模拟</h3>
+              <p style={{ margin: 0, fontSize: 13, color: "#64748b" }}>AI实时模拟比赛，可战术调整</p>
+              <div style={{ marginTop: 12, fontSize: 12, color: "#16a34a", fontWeight: 600 }}>点击进入 →</div>
+            </div>
+          </div>
+        )}
+
         {/* 活跃会话列表 - 从后端 sessions 表实时拉取 */}
         {runningSessions.length > 0 && step === "input" && (
           <div style={{ ...st.card, marginBottom: 20, border: "1.5px solid #f59e0b", background: "#fffbeb" }}>
