@@ -4,6 +4,7 @@ __pycache__/
 *.pyc
 *.pyo
 .env
+*-apiKey-*.csv
 百炼-个人配置信息.txt
 logs/
 .idea/
