@@ -1,13 +1,5 @@
 import json
-from openai import OpenAI
-from config import API_KEY, BASE_URL_CHAT, LLM_MODEL
-
-client = OpenAI(
-    api_key=API_KEY,
-    base_url=BASE_URL_CHAT,
-    timeout=300.0,
-    max_retries=2,
-)
+from llm_client import chat_with_search
 
 ROLE_SYSTEM_PROMPTS = {
     "data_analyst": """你是一名职业足球数据分析师。你的专长是分析球员的统计数据，包括：
@@ -73,12 +65,7 @@ def search_as_role(role: str, query: str) -> str:
         {"role": "system", "content": ROLE_SYSTEM_PROMPTS.get(role, "")},
         {"role": "user", "content": f"请搜索以下信息并给出专业分析：{query}"},
     ]
-    resp = client.chat.completions.create(
-        model=LLM_MODEL,
-        messages=messages,
-        temperature=0.7,
-        extra_body={"enable_search": True},
-    )
+    resp = chat_with_search(messages, temperature=0.7)
     return resp.choices[0].message.content
 
 
@@ -107,12 +94,7 @@ def general_web_search(query: str) -> str:
         {"role": "system", "content": "你是一名专业的足球球探助手，请搜索最新的足球相关信息。"},
         {"role": "user", "content": query},
     ]
-    resp = client.chat.completions.create(
-        model=LLM_MODEL,
-        messages=messages,
-        temperature=0.7,
-        extra_body={"enable_search": True},
-    )
+    resp = chat_with_search(messages, temperature=0.7)
     return resp.choices[0].message.content
 
 

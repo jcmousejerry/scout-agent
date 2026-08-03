@@ -9,25 +9,35 @@ client = OpenAI(
 )
 
 
-def chat(messages, stream=False, temperature=0.7, extra_body=None, timeout=None):
-    kwargs = dict(
-        model=LLM_MODEL,
-        messages=messages,
-        temperature=temperature,
-    )
-    if stream:
-        kwargs["stream"] = True
+def _chat_kwargs(messages, temperature, extra_body=None, timeout=None):
+    extra_body = dict(extra_body or {})
+    if extra_body.get("enable_search"):
+        search_options = dict(extra_body.get("search_options") or {})
+        search_options.setdefault("forced_search", True)
+        extra_body["search_options"] = search_options
+
+    kwargs = {
+        "model": LLM_MODEL,
+        "messages": messages,
+        "temperature": temperature,
+    }
     if extra_body:
         kwargs["extra_body"] = extra_body
     if timeout:
         kwargs["timeout"] = timeout
+    return kwargs
+
+
+def chat(messages, stream=False, temperature=0.7, extra_body=None, timeout=None):
+    kwargs = _chat_kwargs(messages, temperature, extra_body, timeout)
+    if stream:
+        kwargs["stream"] = True
     return client.chat.completions.create(**kwargs)
 
 
 def chat_with_search(messages, temperature=0.7):
-    return client.chat.completions.create(
-        model=LLM_MODEL,
-        messages=messages,
+    return chat(
+        messages,
         temperature=temperature,
         extra_body={"enable_search": True},
         timeout=300.0,
@@ -35,18 +45,9 @@ def chat_with_search(messages, temperature=0.7):
 
 
 def chat_stream(messages, temperature=0.7, extra_body=None, timeout=None):
-    kwargs = dict(
-        model=LLM_MODEL,
-        messages=messages,
-        temperature=temperature,
-        stream=True,
-    )
-    if extra_body:
-        kwargs["extra_body"] = extra_body
-    if timeout:
-        kwargs["timeout"] = timeout
-    stream = client.chat.completions.create(**kwargs)
-    for chunk in stream:
+    kwargs = _chat_kwargs(messages, temperature, extra_body, timeout)
+    kwargs["stream"] = True
+    for chunk in client.chat.completions.create(**kwargs):
         if not getattr(chunk, "choices", None):
             continue
         delta = chunk.choices[0].delta
