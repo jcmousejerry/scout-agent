@@ -1,4 +1,5 @@
 openai>=1.0.0
+python-dotenv>=1.0.0
 langgraph>=0.0.30
 langchain>=0.1.0
 pymilvus[milvus_lite]>=2.4.0
