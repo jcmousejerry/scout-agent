@@ -118,7 +118,7 @@ export default function Home() {
 
   const startAnalysis = async (sid: string) => {
     setStep("loading"); setDebateMessages([]); setEliminated([]);
-    setProgress({ step: "rag", message: "开始检索足球通识知识库...", progress: 10 });
+    setProgress({ step: "rag", message: "开始检索足球知识库...", progress: 10 });
     gotTerminalRef.current = false;
     abortRef.current = new AbortController();
     try {

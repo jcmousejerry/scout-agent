@@ -9,7 +9,7 @@ client = OpenAI(
 )
 
 
-def _chat_kwargs(messages, temperature, extra_body=None, timeout=None):
+def _chat_kwargs(messages, temperature, extra_body=None, timeout=None, max_tokens=None):
     extra_body = dict(extra_body or {})
     if extra_body.get("enable_search"):
         search_options = dict(extra_body.get("search_options") or {})
@@ -25,14 +25,25 @@ def _chat_kwargs(messages, temperature, extra_body=None, timeout=None):
         kwargs["extra_body"] = extra_body
     if timeout:
         kwargs["timeout"] = timeout
+    if max_tokens:
+        kwargs["max_tokens"] = max_tokens
     return kwargs
 
 
-def chat(messages, stream=False, temperature=0.7, extra_body=None, timeout=None):
-    kwargs = _chat_kwargs(messages, temperature, extra_body, timeout)
+def chat(
+    messages,
+    stream=False,
+    temperature=0.7,
+    extra_body=None,
+    timeout=None,
+    max_tokens=None,
+    max_retries=None,
+):
+    kwargs = _chat_kwargs(messages, temperature, extra_body, timeout, max_tokens)
     if stream:
         kwargs["stream"] = True
-    return client.chat.completions.create(**kwargs)
+    request_client = client if max_retries is None else client.with_options(max_retries=max_retries)
+    return request_client.chat.completions.create(**kwargs)
 
 
 def chat_with_search(messages, temperature=0.7):

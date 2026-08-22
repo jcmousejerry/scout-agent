@@ -39,6 +39,17 @@ export interface HistoryItem {
   eliminated_json?: string;
 }
 
+export function parseJSONField<T>(value: unknown, fallback: T): T {
+  if (value === null || value === undefined || value === "" || value === "null") return fallback;
+  let parsed: unknown = value;
+  // Go session APIs return embedded JSON while history APIs return JSON text.
+  // Accept both, including a legacy double-encoded value.
+  for (let i = 0; i < 2 && typeof parsed === "string"; i++) {
+    try { parsed = JSON.parse(parsed); } catch { return fallback; }
+  }
+  return (parsed ?? fallback) as T;
+}
+
 export const API_BASE = "/api";
 
 export const AGENT_AVATARS: Record<string, string> = {

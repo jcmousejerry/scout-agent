@@ -12,29 +12,33 @@ def retrieve(query, top_k_raw=20, top_k_rerank=10):
     raw_results = search(q_emb, top_k=top_k_raw)
 
     documents = []
-    doc_map = {}
-    for i, r in enumerate(raw_results):
+    document_metadata = []
+    for r in raw_results:
         entity = r.get("entity") or {}
         text = entity.get("text", "")
         if text:
-            doc_id = f"doc_{i}"
             documents.append(text)
-            doc_map[doc_id] = {
-                "text": text,
-                "name": entity.get("name", ""),
-                "team": entity.get("team", ""),
-                "position": entity.get("position", ""),
+            document_metadata.append({
+                "source": entity.get("source", ""),
+                "section": entity.get("section", ""),
                 "score": r.get("distance", 0),
-            }
+            })
+
+    if not documents:
+        return []
 
     reranked = rerank(query, documents, top_n=top_k_rerank)
     results = reranked.get("results", [])
     final = []
     for r in results:
         idx = r.get("index")
-        doc = documents[idx] if idx < len(documents) else ""
+        if not isinstance(idx, int) or not 0 <= idx < len(documents):
+            continue
+        metadata = document_metadata[idx]
         final.append({
-            "text": doc,
+            "text": documents[idx],
+            "source": metadata["source"],
+            "section": metadata["section"],
             "relevance_score": r.get("relevance_score", 0),
         })
     return final

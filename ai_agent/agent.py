@@ -156,7 +156,7 @@ def run_full_analysis(session_id: str, preferences_memory: str = None):
     state = finalize_clarification(state)
     sessions[session_id] = state
 
-    yield {"event": "progress", "data": {"step": "rag", "message": "正在检索足球通识知识库...", "progress": 8}}
+    yield {"event": "progress", "data": {"step": "rag", "message": "正在检索足球知识库...", "progress": 8}}
 
     from workflow import retrieve_knowledge, generate_candidates, generate_final_report
     state = retrieve_knowledge(state)

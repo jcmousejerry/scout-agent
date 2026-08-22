@@ -2,9 +2,65 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { API_BASE, st, HistoryItem } from "../lib/types";
+import { API_BASE, st, Candidate, DebateMessage, HistoryItem, parseJSONField } from "../lib/types";
 import { ChatBubble } from "../components/ChatBubble";
 import { RoundDivider } from "../components/RoundDivider";
+
+function CandidateOutcomeSummary({ item }: { item: HistoryItem }) {
+  const parsedCandidates = parseJSONField<Candidate[]>(item.candidates_json, []);
+  const candidates = Array.isArray(parsedCandidates) ? parsedCandidates : [];
+  const finalCandidate = parseJSONField<Candidate | null>(item.final_candidate_json, null);
+  const parsedEliminated = parseJSONField<string[]>(item.eliminated_json, []);
+  const debateMessages = parseJSONField<DebateMessage[]>(item.debate_json, []);
+  const eliminated = new Set(Array.isArray(parsedEliminated) ? parsedEliminated : []);
+
+  // Backfill legacy history rows: completed sessions have exactly one winner,
+  // so every other candidate was eliminated even if eliminated_json was absent.
+  if (finalCandidate?.name) {
+    candidates.forEach(candidate => {
+      if (candidate.name !== finalCandidate.name) eliminated.add(candidate.name);
+    });
+  }
+  if (Array.isArray(debateMessages)) {
+    candidates.forEach(candidate => {
+      if (debateMessages.some(message =>
+        message.type === "elimination" && message.content?.includes(`淘汰 ${candidate.name}`)
+      )) eliminated.add(candidate.name);
+    });
+  }
+
+  if (candidates.length === 0) return null;
+
+  return (
+    <div style={{ marginBottom: 18 }}>
+      <h4 style={{ margin: "0 0 10px", fontSize: 14, color: "#0f172a" }}>🎯 候选球员与最终结果</h4>
+      {finalCandidate && (
+        <div style={{ marginBottom: 10, padding: "9px 12px", background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 8, color: "#166534", fontSize: 13, fontWeight: 700 }}>
+          🏆 最终推荐：{finalCandidate.name}（{finalCandidate.position}，{finalCandidate.team}）
+        </div>
+      )}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(230px, 1fr))", gap: 8 }}>
+        {candidates.map(candidate => {
+          const isFinal = finalCandidate?.name === candidate.name;
+          const isEliminated = eliminated.has(candidate.name) && !isFinal;
+          return (
+            <div key={candidate.name} style={{
+              padding: "10px 12px", borderRadius: 8,
+              background: isFinal ? "#f0fdf4" : isEliminated ? "#fef2f2" : "#f8fafc",
+              border: `1.5px solid ${isFinal ? "#86efac" : isEliminated ? "#fecaca" : "#e2e8f0"}`,
+              opacity: isEliminated ? 0.65 : 1,
+            }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>{candidate.name}</div>
+              <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>{candidate.position} | {candidate.team}</div>
+              {isFinal && <div style={{ fontSize: 12, color: "#16a34a", fontWeight: 700, marginTop: 5 }}>🏆 最终推荐</div>}
+              {isEliminated && <div style={{ fontSize: 12, color: "#dc2626", fontWeight: 700, marginTop: 5 }}>❌ 已淘汰</div>}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export default function HistoryPage() {
   const router = useRouter();
@@ -61,25 +117,19 @@ export default function HistoryPage() {
             </div>
             <div style={{ fontSize: 13, color: "#64748b", marginBottom: 12 }}>查询: {viewing.query}</div>
             <div style={{ fontSize: 13, color: "#64748b", marginBottom: 16 }}>时间: {new Date(viewing.created_at).toLocaleString("zh-CN")}</div>
-            {viewing.candidates_json && (() => {
-              try { const cands = JSON.parse(viewing.candidates_json); return (
-                <div style={{ marginBottom: 16 }}>
-                  <h4 style={{ margin: "0 0 8px", fontSize: 14, color: "#0f172a" }}>🎯 候选球员</h4>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>{cands.map((c: any, i: number) => (
-                    <span key={i} style={{ padding: "4px 10px", background: "#f0fdf4", borderRadius: 6, fontSize: 13, color: "#16a34a", border: "1px solid #bbf7d0" }}>{c.name} ({c.position}, {c.team})</span>
-                  ))}</div>
-                </div>
-              ); } catch { return null; }
-            })()}
+            <CandidateOutcomeSummary item={viewing} />
             {viewing.debate_json && (() => {
-              try { const msgs = JSON.parse(viewing.debate_json); if (!msgs.length) return null; return (
+              const parsed = parseJSONField<DebateMessage[]>(viewing.debate_json, []);
+              const msgs = Array.isArray(parsed) ? parsed : [];
+              if (!msgs.length) return null;
+              return (
                 <div style={{ marginBottom: 16 }}>
                   <h4 style={{ margin: "0 0 8px", fontSize: 14, color: "#0f172a" }}>🗣️ 辩论过程（{msgs.length} 条消息）</h4>
                   <div style={{ background: "#f8fafc", padding: 12, borderRadius: 8, maxHeight: 400, overflowY: "auto", border: "1px solid #e2e8f0" }}>
-                    {(() => { const els: React.JSX.Element[] = []; let lastRound = 0; msgs.forEach((msg: any, i: number) => { if (msg.round !== lastRound) { lastRound = msg.round; els.push(<RoundDivider key={"r" + msg.round} round={msg.round} />); } els.push(<ChatBubble key={i} msg={{ ...msg, msg_id: msg.msg_id || ("h" + i) }} />); }); return els; })()}
+                    {(() => { const els: React.JSX.Element[] = []; let lastRound = 0; msgs.forEach((msg, i) => { if (msg.round !== lastRound) { lastRound = msg.round; els.push(<RoundDivider key={"r" + msg.round} round={msg.round} />); } els.push(<ChatBubble key={i} msg={{ ...msg, msg_id: msg.msg_id || ("h" + i) }} />); }); return els; })()}
                   </div>
                 </div>
-              ); } catch { return null; }
+              );
             })()}
             <h4 style={{ margin: "0 0 8px", fontSize: 14, color: "#0f172a" }}>📝 最终报告</h4>
             <div style={{ background: "#f8fafc", padding: 16, borderRadius: 8, lineHeight: 1.7, overflowX: "auto" }}>

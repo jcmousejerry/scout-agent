@@ -3,7 +3,7 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from config import KNOWLEDGE_FILE
+from config import KNOWLEDGE_FILES
 from embedding_client import embed_texts
 from rag.vector_store import insert_embeddings, drop_collection
 
@@ -51,9 +51,21 @@ def ingest():
     print("Dropping existing collection...")
     drop_collection()
 
-    chunks = parse_knowledge_chunks(KNOWLEDGE_FILE)
+    chunks = []
+    for filepath in KNOWLEDGE_FILES:
+        if not os.path.isfile(filepath):
+            raise FileNotFoundError(f"Knowledge file not found: {filepath}")
+        source = os.path.basename(filepath)
+        file_chunks = parse_knowledge_chunks(filepath)
+        for chunk in file_chunks:
+            chunk["source"] = source
+        chunks.extend(file_chunks)
+
     texts = [c["text"] for c in chunks]
-    metadatas = [{"section": c["section"]} for c in chunks]
+    metadatas = [
+        {"source": c["source"], "section": c["section"]}
+        for c in chunks
+    ]
 
     print(f"Parsed {len(chunks)} knowledge chunks. Generating embeddings...")
     embeddings = embed_texts(texts)
@@ -62,10 +74,10 @@ def ingest():
 
     seen = set()
     for c in chunks:
-        s = c["section"]
-        if s and s not in seen:
-            print(f"  [{s}] ({len(c['text'])} chars)")
-            seen.add(s)
+        label = (c["source"], c["section"])
+        if c["section"] and label not in seen:
+            print(f"  [{c['source']} > {c['section']}] ({len(c['text'])} chars)")
+            seen.add(label)
 
 
 if __name__ == "__main__":

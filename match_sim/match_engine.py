@@ -459,14 +459,19 @@ class MatchEngine:
                 self.state.away_formation = adj.to_value or self.state.away_formation
         elif adj_type == TacticalAdjustmentType.ATTACK_BOOST:
             if is_home:
-                self.state.home_attack_modifier = min(2.0, self.state.home_attack_modifier + 0.3)
+                self.state.home_attack_modifier = min(2.0, self.state.home_attack_modifier + 0.35)
+                self.state.home_defense_modifier = max(0.5, self.state.home_defense_modifier - 0.08)
             else:
-                self.state.away_attack_modifier = min(2.0, self.state.away_attack_modifier + 0.3)
+                self.state.away_attack_modifier = min(2.0, self.state.away_attack_modifier + 0.35)
+                self.state.away_defense_modifier = max(0.5, self.state.away_defense_modifier - 0.08)
+            self.state.match_tempo = "high"
         elif adj_type == TacticalAdjustmentType.DEFENSE_BOOST:
             if is_home:
-                self.state.home_defense_modifier = min(2.0, self.state.home_defense_modifier + 0.3)
+                self.state.home_defense_modifier = min(2.0, self.state.home_defense_modifier + 0.35)
+                self.state.home_attack_modifier = max(0.5, self.state.home_attack_modifier - 0.08)
             else:
-                self.state.away_defense_modifier = min(2.0, self.state.away_defense_modifier + 0.3)
+                self.state.away_defense_modifier = min(2.0, self.state.away_defense_modifier + 0.35)
+                self.state.away_attack_modifier = max(0.5, self.state.away_attack_modifier - 0.08)
         elif adj_type == TacticalAdjustmentType.POSSESSION_FOCUS:
             if is_home:
                 self.state.home_defense_modifier = min(1.5, self.state.home_defense_modifier + 0.15)
@@ -476,11 +481,12 @@ class MatchEngine:
                 self.state.match_tempo = "slow"
         elif adj_type == TacticalAdjustmentType.COUNTER_ATTACK:
             if is_home:
-                self.state.home_attack_modifier = max(0.7, self.state.home_attack_modifier - 0.1)
-                self.state.home_defense_modifier = min(1.5, self.state.home_defense_modifier + 0.2)
+                self.state.home_attack_modifier = min(1.8, self.state.home_attack_modifier + 0.20)
+                self.state.home_defense_modifier = min(1.8, self.state.home_defense_modifier + 0.18)
             else:
-                self.state.away_attack_modifier = max(0.7, self.state.away_attack_modifier - 0.1)
-                self.state.away_defense_modifier = min(1.5, self.state.away_defense_modifier + 0.2)
+                self.state.away_attack_modifier = min(1.8, self.state.away_attack_modifier + 0.20)
+                self.state.away_defense_modifier = min(1.8, self.state.away_defense_modifier + 0.18)
+            self.state.match_tempo = "high"
         elif adj_type == TacticalAdjustmentType.HIGH_PRESS:
             if is_home:
                 self.state.home_attack_modifier = min(1.8, self.state.home_attack_modifier + 0.2)
@@ -488,11 +494,15 @@ class MatchEngine:
             else:
                 self.state.away_attack_modifier = min(1.8, self.state.away_attack_modifier + 0.2)
                 self.state.away_defense_modifier = min(1.8, self.state.away_defense_modifier + 0.2)
+            self.state.match_tempo = "high"
         elif adj_type == TacticalAdjustmentType.LOW_BLOCK:
             if is_home:
-                self.state.home_defense_modifier = max(0.5, self.state.home_defense_modifier - 0.2)
+                self.state.home_defense_modifier = min(2.0, self.state.home_defense_modifier + 0.40)
+                self.state.home_attack_modifier = max(0.5, self.state.home_attack_modifier - 0.18)
             else:
-                self.state.away_defense_modifier = max(0.5, self.state.away_defense_modifier - 0.2)
+                self.state.away_defense_modifier = min(2.0, self.state.away_defense_modifier + 0.40)
+                self.state.away_attack_modifier = max(0.5, self.state.away_attack_modifier - 0.18)
+            self.state.match_tempo = "slow"
         elif adj_type == TacticalAdjustmentType.ALL_OUT_ATTACK:
             if is_home:
                 self.state.home_attack_modifier = 2.0
@@ -553,11 +563,12 @@ class MatchEngine:
             else:
                 self.state.away_substitutions_used += 1
 
-            # Morale boost for making a sub
+            rating_delta = player_on.rating - player_off.rating
+            morale_boost = max(0.02, min(0.10, 0.04 + rating_delta / 100.0))
             if is_home:
-                self.state.home_morale = min(1.0, self.state.home_morale + 0.05)
+                self.state.home_morale = min(1.0, self.state.home_morale + morale_boost)
             else:
-                self.state.away_morale = min(1.0, self.state.away_morale + 0.05)
+                self.state.away_morale = min(1.0, self.state.away_morale + morale_boost)
 
             logger.info("Substitution: %s OFF, %s ON (%s)", adj.from_value, adj.to_value, adj.team)
 

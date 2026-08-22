@@ -691,12 +691,12 @@ function TeamLineup({ title, formation, players, bench, subsUsed, color }: {
 // ── Tactical Panel ──────────────────────────────────────────────────────
 
 const QUICK_ADJUSTMENTS = [
-  { key: "attack_boost", label: "加强进攻", emoji: "⚔️", desc: "进攻倾向+1" },
-  { key: "defense_boost", label: "加强防守", emoji: "🛡️", desc: "防守倾向+1" },
+  { key: "attack_boost", label: "加强进攻", emoji: "⚔️", desc: "威胁提升·防线承压" },
+  { key: "defense_boost", label: "加强防守", emoji: "🛡️", desc: "防守提升·进攻减少" },
   { key: "possession_focus", label: "控制球权", emoji: "🔄", desc: "放慢节奏传控" },
-  { key: "counter_attack", label: "防守反击", emoji: "⚡", desc: "稳固防守快速反击" },
+  { key: "counter_attack", label: "防守反击", emoji: "⚡", desc: "稳守并提高转换威胁" },
   { key: "high_press", label: "高位逼抢", emoji: "🔥", desc: "前场高压" },
-  { key: "low_block", label: "低位防守", emoji: "🏗️", desc: "全员退守" },
+  { key: "low_block", label: "低位防守", emoji: "🏗️", desc: "降节奏·增强防守" },
   { key: "all_out_attack", label: "全力进攻", emoji: "💥", desc: "全员压上" },
   { key: "time_wasting", label: "拖延时间", emoji: "⏳", desc: "控制节奏" },
 ];

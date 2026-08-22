@@ -92,8 +92,9 @@ EVENT_GENERATION_PROMPT = """你是一名专业的足球比赛AI解说员，正�
 {recent_events}
 
 ## 当前战术态势
-- 主队进攻倾向评分：{home_attack_mod}（1=防守，10=进攻），防守倾向评分：{home_defense_mod}（1=低位，10=高位）
-- 客队进攻倾向评分：{away_attack_mod}（1=防守，10=进攻），防守倾向评分：{away_defense_mod}（1=低位，10=高位）
+- 主队进攻效率系数：{home_attack_mod}，防守效率系数：{home_defense_mod}
+- 客队进攻效率系数：{away_attack_mod}，防守效率系数：{away_defense_mod}
+- 效率系数以1.0为基准，高于1表示增强，低于1表示减弱；差异必须明显体现在事件走势中
 - 比赛节奏：{match_tempo}
 - 主队士气：{home_morale}，客队士气：{away_morale}{score_context}
 
@@ -102,7 +103,7 @@ EVENT_GENERATION_PROMPT = """你是一名专业的足球比赛AI解说员，正�
 客队：射门 {away_shots}（射正{away_shots_on}），犯规 {away_fouls}，角球 {away_corners}，黄牌 {away_yellows}，红牌 {away_reds}
 
 ## 任务
-请模拟接下来1-2分钟内可能发生的一个事件。事件类型从以下选择：
+请模拟接下来3-5分钟内可能发生的一个事件。事件类型从以下选择：
 shot（射门）, goal（进球）, foul（犯规）, corner（角球）, offside（越位）, card（黄牌/红牌）, save（扑救）,
 penalty（点球）, free_kick（任意球）, throw_in（界外球）, goal_kick（球门球）, passage_of_play（控球推进）
 
@@ -247,7 +248,8 @@ def build_opponent_prompt(state: MatchState, is_away: bool = True) -> str:
     """Build the opponent tactical decision prompt with full team-relative context."""
     ctx = build_match_state_context(state)
     ctx["recent_events"] = build_recent_events(state, 8)
-    ctx["opponent_adjustments"] = _build_opponent_adjustments(state)
+    opponent_team = "home" if is_away else "away"
+    ctx["opponent_adjustments"] = _build_opponent_adjustments(state, opponent_team)
 
     if is_away:
         ctx["team_name"] = ctx["away_team"]
@@ -307,9 +309,9 @@ def _build_goals_list(state: MatchState) -> str:
     )
 
 
-def _build_opponent_adjustments(state: MatchState) -> str:
+def _build_opponent_adjustments(state: MatchState, opponent_team: str) -> str:
     """Build a summary of recent opponent tactical adjustments."""
-    adjustments = [a for a in state.tactical_adjustments if a.team != "home"]
+    adjustments = [a for a in state.tactical_adjustments if a.team == opponent_team]
     if not adjustments:
         return "（暂无对手战术调整）"
     lines = []

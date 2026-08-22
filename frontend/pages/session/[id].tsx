@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { API_BASE, st } from "../../lib/types";
+import { API_BASE, st, Candidate, DebateMessage, parseJSONField } from "../../lib/types";
 import { ChatBubble } from "../../components/ChatBubble";
 import { RoundDivider } from "../../components/RoundDivider";
 
@@ -35,10 +35,21 @@ export default function SessionPage() {
   }, [id]);
 
   const queryText = data?.original_query || (typeof id === "string" ? id : "");
-  const candidates = data?.candidates_json && data.candidates_json !== "null" ? (typeof data.candidates_json === "string" ? null : data.candidates_json) : null;
-  const debateMsgs = data?.debate_json && data.debate_json !== "null" ? (typeof data.debate_json === "string" ? null : data.debate_json) : null;
-  const eliminated = data?.eliminated_json && data.eliminated_json !== "null" ? (typeof data.eliminated_json === "string" ? [] : data.eliminated_json) : [];
-  const finalCandidate = data?.final_candidate_json && data.final_candidate_json !== "null" ? (typeof data.final_candidate_json === "string" ? null : data.final_candidate_json) : null;
+  const parsedCandidates = parseJSONField<Candidate[]>(data?.candidates_json, []);
+  const candidates = Array.isArray(parsedCandidates) ? parsedCandidates : [];
+  const parsedDebateMsgs = parseJSONField<DebateMessage[]>(data?.debate_json, []);
+  const debateMsgs = Array.isArray(parsedDebateMsgs) ? parsedDebateMsgs : [];
+  const parsedEliminated = parseJSONField<string[]>(data?.eliminated_json, []);
+  const persistedEliminated = Array.isArray(parsedEliminated) ? parsedEliminated : [];
+  const finalCandidate = parseJSONField<Candidate | null>(data?.final_candidate_json, null);
+  const eliminated = Array.from(new Set([
+    ...persistedEliminated,
+    ...candidates
+      .filter(candidate => debateMsgs.some(message =>
+        message.type === "elimination" && message.content?.includes(`淘汰 ${candidate.name}`)
+      ))
+      .map(candidate => candidate.name),
+  ]));
   const report = data?.final_report || "";
   const isComplete = data?.status === "completed";
 
@@ -85,22 +96,27 @@ export default function SessionPage() {
               </div>
             </div>
 
-            {candidates && Array.isArray(candidates) && candidates.length > 0 && (
+            {candidates.length > 0 && (
               <div style={{ marginBottom: 16 }}>
                 <h4 style={{ margin: "0 0 10px", fontSize: 14, color: "#0f172a" }}>🎯 候选球员（{candidates.length}人）</h4>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 10 }}>
-                  {candidates.map((c: any, i: number) => (
-                    <div key={i} style={{ padding: 12, borderRadius: 8, border: "1.5px solid " + (eliminated.includes(c.name) ? "#fecaca" : "#e2e8f0"), background: eliminated.includes(c.name) ? "#fef2f2" : "#fff", opacity: eliminated.includes(c.name) ? 0.5 : 1 }}>
+                  {candidates.map((c) => {
+                    const isFinal = finalCandidate?.name === c.name;
+                    const isEliminated = eliminated.includes(c.name) && !isFinal;
+                    return (
+                    <div key={c.name} style={{ padding: 12, borderRadius: 8, border: "1.5px solid " + (isFinal ? "#86efac" : isEliminated ? "#fecaca" : "#e2e8f0"), background: isFinal ? "#f0fdf4" : isEliminated ? "#fef2f2" : "#fff", opacity: isEliminated ? 0.58 : 1 }}>
                       <div style={{ fontSize: 14, fontWeight: 600, color: "#0f172a", marginBottom: 2 }}>{c.name}</div>
                       <div style={{ fontSize: 12, color: "#64748b" }}>{c.position} | {c.team}</div>
-                      {eliminated.includes(c.name) && <div style={{ fontSize: 11, color: "#dc2626", marginTop: 4 }}>❌ 已淘汰</div>}
+                      {isFinal && <div style={{ fontSize: 11, color: "#16a34a", fontWeight: 700, marginTop: 4 }}>🏆 最终推荐</div>}
+                      {isEliminated && <div style={{ fontSize: 11, color: "#dc2626", fontWeight: 700, marginTop: 4 }}>❌ 已淘汰</div>}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
 
-            {debateMsgs && Array.isArray(debateMsgs) && debateMsgs.length > 0 && (
+            {debateMsgs.length > 0 && (
               <div style={{ marginBottom: 16 }}>
                 <h4 style={{ margin: "0 0 10px", fontSize: 14, color: "#0f172a" }}>🗣️ 辩论过程</h4>
                 <div style={{ background: "#f8fafc", padding: 12, borderRadius: 8, maxHeight: 450, overflowY: "auto", border: "1px solid #e2e8f0" }}>
@@ -134,7 +150,7 @@ export default function SessionPage() {
               </div>
             )}
 
-            {!isComplete && !candidates && (
+            {!isComplete && candidates.length === 0 && (
               <div style={{ textAlign: "center", padding: 40, color: "#94a3b8", fontSize: 14 }}>
                 <div style={{ fontSize: 32, marginBottom: 8 }}>⏳</div>
                 分析进行中，数据将持续更新...

@@ -15,7 +15,7 @@ from ai_agent.config import API_KEY, BASE_URL_CHAT, LLM_MODEL
 GO_DATA_BASE = os.environ.get("MATCH_DATA_BASE", "http://localhost:8080/api/match-data")
 
 # Match simulation settings
-TICK_INTERVAL = 0.5            # 每 tick 的真实秒数（配合 5 分钟推进，全场比赛 ≈ 45 秒）
+TICK_INTERVAL = 2.5            # 每 tick 最短耗时；18个5分钟 tick 让全场至少约45秒
 MATCH_MINUTES = 90             # 常规比赛分钟数
 HALF_TIME_LENGTH = 45          # 每半场分钟
 INJURY_TIME_PER_HALF = 1       # 每半场补时分钟

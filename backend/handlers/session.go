@@ -28,13 +28,14 @@ func GetSessionStatus(c *gin.Context) {
 		return
 	}
 
+	userID := c.GetInt("user_id")
 	var resp SessionStatusResponse
 	err := database.GetDB().QueryRow(
 		`SELECT session_id, original_query, COALESCE(candidates_json, 'null'),
 		        COALESCE(debate_json, 'null'), COALESCE(final_candidate_json, 'null'),
 		        COALESCE(final_report, ''), COALESCE(eliminated_json, 'null'),
 		        status, created_at, updated_at
-		 FROM sessions WHERE session_id = ?`, sessionID,
+		 FROM sessions WHERE session_id = ? AND user_id = ?`, sessionID, userID,
 	).Scan(
 		&resp.SessionID, &resp.OriginalQuery, &resp.CandidatesJSON,
 		&resp.DebateJSON, &resp.FinalCandidateJSON,

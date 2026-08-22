@@ -10,10 +10,12 @@ import asyncio
 import json
 import re
 import logging
+import random
 from typing import Optional, Tuple
 
-from ai_agent.llm_client import chat as llm_chat
 from config import LLM_TIMEOUT, EVENT_TEMPERATURE
+from ai_agent.llm_client import chat as llm_chat
+from match_dynamics import MatchDynamics
 from models import MatchState, MatchEvent, MatchStats
 from prompts.event_prompts import build_event_prompt, build_narrative_prompt
 
@@ -198,8 +200,9 @@ class EventGenerator:
         event, updated_stats = await generator.generate(state)
     """
 
-    def __init__(self):
+    def __init__(self, rng: Optional[random.Random] = None):
         self._consecutive_failures = 0
+        self.dynamics = MatchDynamics(rng)
 
     async def generate(self, state: MatchState) -> Tuple[MatchEvent, MatchStats]:
         """Generate the next match event.
@@ -225,7 +228,10 @@ class EventGenerator:
                 llm_chat,
                 messages=messages,
                 temperature=EVENT_TEMPERATURE,
+                extra_body={"enable_thinking": True, "thinking_budget": 256},
                 timeout=LLM_TIMEOUT,
+                max_tokens=350,
+                max_retries=0,
             )
             raw_text = response.choices[0].message.content or ""
         except Exception as exc:
@@ -249,6 +255,21 @@ class EventGenerator:
             return self._fallback(state)
 
         self._consecutive_failures = 0
+        resolved_goal = self.dynamics.maybe_build_goal(state)
+        if resolved_goal:
+            stats = state.stats
+            _apply_event_stats(resolved_goal, stats)
+            return resolved_goal, stats
+
+        # The LLM may propose a goal for narrative variety, but the mechanics
+        # layer owns the result. A failed goal roll becomes a saved shot.
+        if parsed.get("event_type") == "goal":
+            parsed = dict(parsed)
+            parsed["event_type"] = "shot"
+            parsed["event_subtype"] = "shot_on_target"
+            actor = parsed.get("actor_name") or "进攻球员"
+            parsed["description"] = f"{actor}完成了一次极具威胁的射门，但被门将奋力扑出。"
+            parsed["importance"] = 4
         return self._build_event_from_parsed(parsed, state)
 
     async def generate_narrative(self, state: MatchState, period: str = "上半场") -> str:
@@ -270,7 +291,10 @@ class EventGenerator:
                 llm_chat,
                 messages=[system_msg, user_msg],
                 temperature=0.7,
+                extra_body={"enable_thinking": True, "thinking_budget": 256},
                 timeout=LLM_TIMEOUT,
+                max_tokens=600,
+                max_retries=0,
             )
             return response.choices[0].message.content or fallback
         except Exception as exc:
@@ -281,7 +305,7 @@ class EventGenerator:
 
     def _fallback(self, state: MatchState, is_error: bool = False) -> Tuple[MatchEvent, MatchStats]:
         """Return a filler event when the LLM call fails."""
-        event = _build_filler_event(state)
+        event = self.dynamics.maybe_build_goal(state) or _build_filler_event(state)
         event.match_minute = state.match_minute
         event.half = state.match_half
         stats = state.stats
@@ -338,7 +362,7 @@ class EventGenerator:
                 team = "away"
 
         # Advance minute
-        advance = max(1, min(int(parsed.get("match_minute_advance", 1)), 3))
+        advance = max(3, min(int(parsed.get("match_minute_advance", 5)), 5))
 
         event = MatchEvent(
             event_type=parsed["event_type"],

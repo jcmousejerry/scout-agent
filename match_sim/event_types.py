@@ -40,12 +40,12 @@ EVENT_CONSTRAINTS = {
 USER_TACTICAL_ADJUSTMENTS = {
     TacticalAdjustmentType.SUBSTITUTION:       {"label": "换人",       "cooldown": 0, "description": "替换场上球员，最多5次换人机会"},
     TacticalAdjustmentType.FORMATION_CHANGE:   {"label": "变阵",       "cooldown": 0, "description": "改变球队阵型（如 4-3-3 → 4-4-2）"},
-    TacticalAdjustmentType.ATTACK_BOOST:       {"label": "加强进攻",   "cooldown": 0, "description": "提升进攻倾向，更多球员投入进攻"},
-    TacticalAdjustmentType.DEFENSE_BOOST:      {"label": "加强防守",   "cooldown": 0, "description": "提升防守倾向，收缩防线"},
+    TacticalAdjustmentType.ATTACK_BOOST:       {"label": "加强进攻",   "cooldown": 0, "description": "显著提高进攻威胁，但会增加被反击风险"},
+    TacticalAdjustmentType.DEFENSE_BOOST:      {"label": "加强防守",   "cooldown": 0, "description": "提高防守效率，但会略微降低进攻投入"},
     TacticalAdjustmentType.POSSESSION_FOCUS:   {"label": "控制球权",   "cooldown": 0, "description": "放慢节奏，传控为主"},
-    TacticalAdjustmentType.COUNTER_ATTACK:     {"label": "防守反击",   "cooldown": 0, "description": "稳固防守，快速反击"},
+    TacticalAdjustmentType.COUNTER_ATTACK:     {"label": "防守反击",   "cooldown": 0, "description": "同时增强防守稳定性和快速转换威胁"},
     TacticalAdjustmentType.HIGH_PRESS:         {"label": "高位逼抢",   "cooldown": 0, "description": "在前场进行高强度压迫"},
-    TacticalAdjustmentType.LOW_BLOCK:          {"label": "低位防守",   "cooldown": 0, "description": "全员退守本方半场"},
+    TacticalAdjustmentType.LOW_BLOCK:          {"label": "低位防守",   "cooldown": 0, "description": "明显增强防守并降低比赛节奏，牺牲进攻"},
     TacticalAdjustmentType.ALL_OUT_ATTACK:     {"label": "全力进攻",   "cooldown": 0, "description": "放弃防守，全员压上进攻（仅落后时可用）"},
     TacticalAdjustmentType.TIME_WASTING:       {"label": "拖延时间",   "cooldown": 0, "description": "控制节奏，消耗比赛时间（仅领先时可用）"},
 }

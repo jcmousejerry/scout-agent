@@ -206,13 +206,13 @@ curl --request POST \
 `instruct` 参数可以引导模型使用不同的排序策略。请使用英文编写指令。
 
 -   **问答检索（默认）**：`"Given a web search query, retrieve relevant passages that answer the query."`
-
+    
     侧重于寻找答案。对于查询"如何预防感冒？"，"勤洗手可预防感冒"的分数会高于"感冒是一种常见病"（主题相关但未回答问题）。
-
+    
 -   **语义相似度**：`"Retrieve semantically similar text."`
-
+    
     侧重于语义等价，不受措辞影响。例如："如何修改密码？"可匹配"忘记密码怎么办？"（FAQ 场景）。
-
+    
 
 未设置时，模型默认使用问答检索策略。
 
@@ -278,11 +278,11 @@ gte-rerank模型将于2026年05月30日下线，推荐使用qwen3-rerank模型�
 **关键术语：**
 
 -   **单条最大 Token 数**：单条查询或文档的最大 Token 数。超出限制的内容将被截断，排序结果仅基于截断后的内容计算，可能影响排序精度。
-
+    
 -   **单次请求最大文档数**：单次请求允许的最大文档数量。对于 qwen3-vl-rerank 模型，该限制会根据文档类型（文本、图片、视频、混合模态）的不同而有所差异。
-
+    
 -   **单次请求最大 Token 数**：计算公式为 `查询 Token 数 x 文档数量 + 所有文档 Token 总数`，该值不能超过单次请求上限。
-
+    
 
 ## API 参考
 
@@ -295,3 +295,4 @@ gte-rerank模型将于2026年05月30日下线，推荐使用qwen3-rerank模型�
 ## 限流
 
 请参见[限流](https://help.aliyun.com/zh/model-studio/rate-limit)。
+

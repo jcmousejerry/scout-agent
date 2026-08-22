@@ -1,4 +1,6 @@
 import logging
+import os
+import shutil
 import threading
 
 logging.getLogger("faiss").setLevel(logging.WARNING)
@@ -36,9 +38,22 @@ def get_client():
 
 
 def drop_collection():
-    client = get_client()
-    if COLLECTION_NAME in client.list_collections():
-        client.drop_collection(COLLECTION_NAME)
+    """Reset the local Milvus Lite store before a full knowledge rebuild."""
+    global _client
+    if _client is not None:
+        try:
+            _client.close()
+        finally:
+            _client = None
+
+    # This database contains only the generated knowledge collection. Recreating
+    # it is more reliable than drop_collection on Windows, where Milvus Lite can
+    # leave a manifest.json.tmp that prevents the collection from being dropped.
+    if os.path.isdir(MILVUS_URI):
+        shutil.rmtree(MILVUS_URI)
+    elif os.path.isfile(MILVUS_URI):
+        os.remove(MILVUS_URI)
+    _client = None
 
 
 def ensure_collection():
@@ -68,7 +83,7 @@ def search(query_embedding, top_k=20):
                 collection_name=COLLECTION_NAME,
                 data=[query_embedding],
                 limit=top_k,
-                output_fields=["text", "section"],
+                output_fields=["text", "source", "section"],
             )
             return results[0]
         except Exception as e:

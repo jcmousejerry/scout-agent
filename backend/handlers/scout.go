@@ -295,9 +295,9 @@ func ScoutAnalyze(c *gin.Context) {
 				switch evt {
 				case "candidate":
 					var candData struct {
-						Candidate     json.RawMessage   `json:"candidate"`
-						Index         int               `json:"index"`
-						Total         int               `json:"total"`
+						Candidate       json.RawMessage   `json:"candidate"`
+						Index           int               `json:"index"`
+						Total           int               `json:"total"`
 						CandidatesSoFar []json.RawMessage `json:"candidates_so_far"`
 					}
 					if jerr := json.Unmarshal([]byte(dataStr), &candData); jerr == nil {
@@ -320,15 +320,25 @@ func ScoutAnalyze(c *gin.Context) {
 						Round      int             `json:"round"`
 						Type       string          `json:"type"`
 						MsgID      string          `json:"msg_id"`
+						Eliminated json.RawMessage `json:"eliminated,omitempty"`
 					}
 					if json.Unmarshal([]byte(dataStr), &msgData) == nil {
 						msgBytes, _ := json.Marshal(msgData)
 						debateAccum = append(debateAccum, msgBytes)
 						b, _ := json.Marshal(debateAccum)
-						database.GetDB().Exec(
-							`UPDATE sessions SET debate_json=?, eliminated_json=json_extract(?, '$.eliminated') WHERE session_id=?`,
-							string(b), dataStr, req.SessionID,
-						)
+						if shouldPersistEliminated(msgData.Type, msgData.Eliminated) {
+							database.GetDB().Exec(
+								`UPDATE sessions SET debate_json=?, eliminated_json=? WHERE session_id=?`,
+								string(b), string(msgData.Eliminated), req.SessionID,
+							)
+						} else {
+							// 普通专家发言不含 eliminated。只能更新辩论消息，不能把
+							// 已经持久化的淘汰名单覆盖成 NULL。
+							database.GetDB().Exec(
+								`UPDATE sessions SET debate_json=? WHERE session_id=?`,
+								string(b), req.SessionID,
+							)
+						}
 					}
 
 				case "result":
@@ -367,6 +377,18 @@ func ScoutAnalyze(c *gin.Context) {
 	if disconnected {
 		log.Printf("[ScoutAnalyze] Analysis completed for session %s (frontend was disconnected)", req.SessionID)
 	}
+}
+
+func shouldPersistEliminated(messageType string, raw json.RawMessage) bool {
+	if messageType != "elimination" {
+		return false
+	}
+	trimmed := bytes.TrimSpace(raw)
+	if len(trimmed) == 0 || trimmed[0] != '[' {
+		return false
+	}
+	var values []json.RawMessage
+	return json.Unmarshal(trimmed, &values) == nil
 }
 
 func saveUserPreferences(userID int, answers map[string]string) {

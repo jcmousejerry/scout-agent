@@ -13,8 +13,8 @@ import json
 import logging
 from typing import List, Optional, Tuple
 
-from ai_agent.llm_client import chat as llm_chat
 from config import LLM_TIMEOUT, TACTICS_TEMPERATURE, OPPONENT_COUNTER_DELAY, SUBSTITUTION_LIMIT
+from ai_agent.llm_client import chat as llm_chat
 from models import (
     MatchState,
     MatchEvent,
@@ -88,7 +88,10 @@ class OpponentAgent:
                 llm_chat,
                 messages=[system_msg, user_msg],
                 temperature=TACTICS_TEMPERATURE,
+                extra_body={"enable_thinking": True, "thinking_budget": 256},
                 timeout=LLM_TIMEOUT,
+                max_tokens=500,
+                max_retries=0,
             )
             raw_text = response.choices[0].message.content or ""
         except Exception as exc:
@@ -174,7 +177,10 @@ class OpponentAgent:
                 llm_chat,
                 messages=[system_msg, {"role": "user", "content": prompt}],
                 temperature=TACTICS_TEMPERATURE,
+                extra_body={"enable_thinking": True, "thinking_budget": 256},
                 timeout=LLM_TIMEOUT,
+                max_tokens=500,
+                max_retries=0,
             )
             raw_text = response.choices[0].message.content or ""
         except Exception as exc:

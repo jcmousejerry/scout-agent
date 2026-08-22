@@ -5,6 +5,7 @@ __pycache__/
 *.pyo
 .env
 *-apiKey-*.csv
+bailian-docs/api-key相关信息.txt
 百炼-个人配置信息.txt
 logs/
 .idea/
