@@ -39,6 +39,6 @@ COLLECTION_NAME = "football_theory"
 
 KNOWLEDGE_DIR = os.path.join(PROJECT_DIR, "kb")
 KNOWLEDGE_FILES = (
-    os.path.join(KNOWLEDGE_DIR, "豪门球员知识库.md"),
     os.path.join(KNOWLEDGE_DIR, "足球通识知识库.md"),
+    os.path.join(KNOWLEDGE_DIR, "足球战术进阶知识库.md"),
 )

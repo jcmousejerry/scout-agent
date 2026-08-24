@@ -4,6 +4,8 @@ __pycache__/
 *.pyc
 *.pyo
 .env
+.env.*
+!.env.example
 *-apiKey-*.csv
 bailian-docs/api-key相关信息.txt
 百炼-个人配置信息.txt
@@ -11,6 +13,7 @@ logs/
 .idea/
 *.exe
 *.db
+.scout_knowledge_manifest.json
 dist/
 temp/
 *.stackdump

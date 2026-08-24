@@ -37,16 +37,19 @@ if ($mysqlUp.TcpTestSucceeded) {
     if ($ans -ne "Y" -and $ans -ne "y") { exit 1 }
 }
 
-# --- 步骤 1: 球探知识库向量初始化（首次运行） ---
+# --- 步骤 1: 球探知识库向量初始化（首次运行或知识源变化后） ---
 if (-not $SkipIngest) {
     $dbFile = Join-Path $ROOT "ai_agent\rag\scout_knowledge.db"
-    if (-not (Test-Path $dbFile)) {
+    $ingestScript = Join-Path $ROOT "ai_agent\rag\ingest.py"
+    & $PYTHON $ingestScript --check 2>$null
+    $indexIsCurrent = $LASTEXITCODE -eq 0
+    if (-not $indexIsCurrent) {
         Write-Step 1 5 "初始化球探知识库向量..."
-        & $PYTHON (Join-Path $ROOT "ai_agent\rag\ingest.py")
+        & $PYTHON $ingestScript
         if ($LASTEXITCODE -ne 0) { Write-Host "知识库初始化失败！" -ForegroundColor Red; exit 2 }
         Write-Host "  -> 完成" -ForegroundColor Green
     } else {
-        Write-Step 1 5 "球探知识库已存在，跳过初始化" -ForegroundColor DarkGray
+        Write-Step 1 5 "球探知识库内容未变化，跳过初始化" -ForegroundColor DarkGray
     }
 } else {
     Write-Step 1 5 "跳过知识库初始化" -ForegroundColor DarkGray
